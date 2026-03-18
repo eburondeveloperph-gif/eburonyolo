@@ -16,6 +16,9 @@ import {
   Video,
   Home,
   User,
+  Cctv,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 function Pill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'green' | 'amber' | 'red' | 'blue' }) {
@@ -156,114 +159,163 @@ export default function SemlexFaceShowcaseDemo() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+      <header className="px-6 py-5 flex items-center justify-between border-b border-white/5 bg-slate-900/20 backdrop-blur-xl sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <Eye className="w-8 h-8 text-cyan-400" />
-          <div>
-            <h1 className="text-xl font-bold tracking-wider text-white">Eburon</h1>
-            <p className="text-[10px] uppercase tracking-widest text-cyan-500">ISEEYOU</p>
+          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <ShieldCheck className="w-7 h-7 text-cyan-400" />
           </div>
         </div>
+        
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <div className="relative">
+            <Lock className="w-5 h-5 text-cyan-500/40" />
+            <div className="absolute inset-0 border border-cyan-500/20 rounded-full scale-150 animate-pulse" />
+          </div>
+        </div>
+
         <div className="flex items-center gap-4">
-          <Bell className="w-6 h-6 text-slate-400" />
+          <div className="relative p-2 rounded-xl bg-slate-800/40 border border-white/5">
+            <Bell className="w-6 h-6 text-slate-300" />
+            <span className="absolute top-1 right-1 w-4 h-4 bg-rose-600 rounded-full text-[9px] flex items-center justify-center font-bold border-2 border-slate-900">2</span>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow p-6 space-y-6 overflow-y-auto pb-24">
-        {/* Hero */}
-        <div className="relative rounded-2xl overflow-hidden border border-slate-800 h-48 group">
-          <img src="https://ais-dev-ejzbcgt7ruetckswv642si-56203130379.asia-east1.run.app/api/attachments/89d5cb25-1e75-490d-963a-baec89117a56/attachment.png" alt="Facial Recognition System" className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105" referrerPolicy="no-referrer" />
+      <main className="flex-grow p-5 space-y-6 overflow-y-auto pb-28">
+        {/* Hero / Immigration Portal */}
+        <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 aspect-[4/3] group shadow-2xl shadow-cyan-900/20">
+          <img 
+            src="https://ais-dev-ejzbcgt7ruetckswv642si-56203130379.asia-east1.run.app/api/attachments/89d5cb25-1e75-490d-963a-baec89117a56/attachment.png" 
+            alt="Immigration Hall" 
+            className="w-full h-full object-cover brightness-75 transition-transform duration-1000 group-hover:scale-110" 
+            referrerPolicy="no-referrer" 
+          />
           
           {/* Scanning Line Animation */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="w-full h-[2px] bg-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.5)] absolute top-0 animate-scan" />
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+            <div className="w-full h-[1px] bg-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.6)] absolute top-0 animate-scan" />
           </div>
 
           {/* Biometric Frame Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative">
-              <ScanFace className="w-16 h-16 text-cyan-400/30 animate-pulse" />
-              <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full scale-150 animate-pulse" />
-              <div className="absolute inset-0 border border-cyan-500/10 rounded-full scale-[2] animate-[ping_4s_linear_infinite]" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="relative w-48 h-56">
+              {/* Corner Brackets */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg" />
+              
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ScanFace className="w-12 h-12 text-white/20 animate-pulse" />
+              </div>
             </div>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <ScanFace className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-lg font-bold tracking-tight text-white">Verification Portal</h2>
-              </div>
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-tighter">Biometric Active</span>
-              </div>
-            </div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Immigration Biometric System</p>
+          {/* HUD Elements */}
+          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10">
+            <span className="text-[11px] font-bold text-white tracking-widest uppercase">IMMIGRATION</span>
           </div>
+
+          <div className="absolute bottom-4 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-white uppercase tracking-wider">REC</span>
+          </div>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           <button 
-            className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-900/40 to-slate-900 border border-blue-500/30 hover:border-blue-500/60 transition disabled:opacity-50"
+            className="group relative flex items-center gap-5 p-5 rounded-[1.5rem] bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#020617] border border-white/10 hover:border-cyan-500/40 transition-all duration-500 overflow-hidden shadow-xl"
             onClick={startScan}
             disabled={isScanning}
           >
-            <Fingerprint className={`w-8 h-8 ${isScanning ? 'animate-pulse text-blue-300' : 'text-blue-400'}`} />
-            <div className="flex flex-col items-start">
-              <span className="font-semibold">{isScanning ? 'Analyzing Biometrics...' : 'Scan Identity'}</span>
-              {isScanning && (
-                <div className="w-32 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                  <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${scanProgress}%` }} />
-                </div>
-              )}
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+              <Fingerprint className={`w-8 h-8 ${isScanning ? 'animate-pulse text-cyan-300' : 'text-cyan-400'}`} />
+            </div>
+            <div className="flex flex-col items-start relative z-10">
+              <span className="text-lg font-bold text-white tracking-tight group-hover:text-cyan-50 transition-colors">{isScanning ? 'Analyzing Biometrics...' : 'Scan Identity'}</span>
+              <span className="text-[10px] text-cyan-500/60 uppercase tracking-[0.2em] font-bold">Verification Protocol</span>
+            </div>
+            {isScanning && (
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800">
+                <div className="h-full bg-cyan-500 transition-all duration-300 shadow-[0_0_15px_cyan]" style={{ width: `${scanProgress}%` }} />
+              </div>
+            )}
+          </button>
+
+          <button 
+            className="group relative flex items-center gap-5 p-5 rounded-[1.5rem] bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] border border-white/10 hover:border-teal-500/40 transition-all duration-500 overflow-hidden shadow-xl"
+            onClick={startCamera}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
+              <Cctv className="w-8 h-8 text-teal-400" />
+            </div>
+            <div className="flex flex-col items-start relative z-10">
+              <span className="text-lg font-bold text-white tracking-tight group-hover:text-teal-50 transition-colors">{cameraReady ? 'Surveillance Active' : 'Start Surveillance'}</span>
+              <span className="text-[10px] text-teal-500/60 uppercase tracking-[0.2em] font-bold">Live Feed Monitoring</span>
             </div>
           </button>
-          <button className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-cyan-900/40 to-slate-900 border border-cyan-500/30 hover:border-cyan-500/60 transition" onClick={startCamera}>
-            <Video className="w-8 h-8 text-cyan-400" />
-            <span className="font-semibold">{cameraReady ? 'Surveillance Active' : 'Start Surveillance'}</span>
-          </button>
-          <button className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-amber-900/40 to-slate-900 border border-amber-500/30 hover:border-amber-500/60 transition">
-            <AlertTriangle className="w-8 h-8 text-amber-400" />
-            <span className="font-semibold">Report Suspicious Activity</span>
+
+          <button className="group relative flex items-center gap-5 p-5 rounded-[1.5rem] bg-gradient-to-br from-[#451a03]/60 via-[#0f172a] to-[#020617] border border-white/10 hover:border-amber-500/40 transition-all duration-500 overflow-hidden shadow-xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+              <AlertTriangle className="w-8 h-8 text-amber-400" />
+            </div>
+            <div className="flex flex-col items-start relative z-10">
+              <span className="text-lg font-bold text-white tracking-tight group-hover:text-amber-50 transition-colors">Report Suspicious Activity</span>
+              <span className="text-[10px] text-amber-500/60 uppercase tracking-[0.2em] font-bold">Emergency Protocol</span>
+            </div>
           </button>
         </div>
 
         {/* Camera View */}
-        <div className={`rounded-xl overflow-hidden border border-slate-800 relative ${cameraReady ? 'block' : 'hidden'}`}>
-          <div className="relative aspect-[9/16] w-full bg-slate-900">
+        <div className={`rounded-[2.5rem] overflow-hidden border border-white/10 relative shadow-2xl ${cameraReady ? 'block' : 'hidden'}`}>
+          <div className="relative aspect-[9/16] w-full bg-slate-950">
             <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
             
             {/* Scanning HUD Overlay */}
             {isScanning && (
               <div className="absolute inset-0 z-10">
-                <div className="absolute inset-0 border-[40px] border-slate-950/60" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 border-cyan-500/50 rounded-3xl">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-cyan-400 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-cyan-400 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-cyan-400 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-cyan-400 rounded-br-lg" />
+                <div className="absolute inset-0 border-[60px] border-black/70 backdrop-blur-[2px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 border-cyan-500/40 rounded-[3rem] overflow-hidden">
+                  <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-cyan-400 rounded-tl-2xl" />
+                  <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-cyan-400 rounded-tr-2xl" />
+                  <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-cyan-400 rounded-bl-2xl" />
+                  <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-cyan-400 rounded-br-2xl" />
                   
                   {/* Moving Scan Line */}
-                  <div className="absolute w-full h-1 bg-cyan-400/50 shadow-[0_0_15px_cyan] animate-scan" />
+                  <div className="absolute w-full h-[2px] bg-cyan-400 shadow-[0_0_25px_cyan] animate-scan z-20" />
+                  
+                  {/* Face Mesh Effect (SVG) */}
+                  <svg className="absolute inset-0 w-full h-full opacity-30 text-cyan-400" viewBox="0 0 100 100">
+                    <path d="M50 20 L30 40 L50 60 L70 40 Z" fill="none" stroke="currentColor" strokeWidth="0.5" className="animate-pulse" />
+                    <path d="M30 40 L20 60 L50 80 L80 60 L70 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                    <circle cx="35" cy="45" r="1" fill="currentColor" />
+                    <circle cx="65" cy="45" r="1" fill="currentColor" />
+                    <circle cx="50" cy="55" r="1" fill="currentColor" />
+                    <path d="M40 70 Q50 75 60 70" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                  </svg>
                   
                   {/* Data Points */}
-                  <div className="absolute top-4 left-4 space-y-1">
+                  <div className="absolute top-6 left-6 space-y-2">
                     <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
                     <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse delay-75" />
                     <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse delay-150" />
                   </div>
                 </div>
                 
-                <div className="absolute bottom-12 left-0 w-full flex flex-col items-center gap-2">
-                  <div className="px-4 py-1 bg-cyan-500/20 border border-cyan-500/40 rounded-full backdrop-blur-md">
-                    <span className="text-xs font-bold text-cyan-400 tracking-widest uppercase animate-pulse">Analyzing Facial Mesh...</span>
+                <div className="absolute bottom-16 left-0 w-full flex flex-col items-center gap-3">
+                  <div className="px-5 py-1.5 bg-cyan-500/20 border border-cyan-500/40 rounded-full backdrop-blur-xl shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                    <span className="text-[11px] font-bold text-cyan-400 tracking-[0.2em] uppercase animate-pulse">Analyzing Facial Mesh...</span>
                   </div>
-                  <div className="text-[10px] text-cyan-400/60 font-mono">MATCH_PROBABILITY: {(scanProgress * 0.98).toFixed(2)}%</div>
+                  <div className="text-[10px] text-cyan-400/60 font-mono tracking-widest bg-black/40 px-3 py-1 rounded-md border border-white/5">MATCH_PROBABILITY: {(scanProgress * 0.98).toFixed(2)}%</div>
                 </div>
               </div>
             )}
@@ -272,95 +324,150 @@ export default function SemlexFaceShowcaseDemo() {
 
         {/* Scan Result Modal */}
         {scanResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm">
-            <div className={`w-full max-w-sm rounded-3xl border p-8 text-center space-y-6 animate-in zoom-in duration-300 ${
-              scanResult === 'success' ? 'bg-emerald-950/30 border-emerald-500/30' : 'bg-rose-950/30 border-rose-500/30'
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-500">
+            <div className={`w-full max-w-sm rounded-[2.5rem] border p-10 text-center space-y-8 animate-in zoom-in slide-in-from-bottom-10 duration-500 shadow-2xl ${
+              scanResult === 'success' ? 'bg-emerald-950/40 border-emerald-500/30 shadow-emerald-500/10' : 'bg-rose-950/40 border-rose-500/30 shadow-rose-500/10'
             }`}>
               <div className="flex justify-center">
-                {scanResult === 'success' ? (
-                  <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/40">
-                    <UserCheck className="w-10 h-10 text-emerald-400" />
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center border border-rose-500/40">
-                    <XCircle className="w-10 h-10 text-rose-400" />
-                  </div>
-                )}
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center border-2 animate-pulse ${
+                  scanResult === 'success' ? 'bg-emerald-500/20 border-emerald-500/40' : 'bg-rose-500/20 border-rose-500/40'
+                }`}>
+                  {scanResult === 'success' ? (
+                    <UserCheck className="w-12 h-12 text-emerald-400" />
+                  ) : (
+                    <XCircle className="w-12 h-12 text-rose-400" />
+                  )}
+                </div>
               </div>
               
-              <div>
-                <h2 className={`text-2xl font-bold ${scanResult === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {scanResult === 'success' ? 'Identity Verified' : 'Access Denied'}
+              <div className="space-y-3">
+                <h2 className={`text-3xl font-black tracking-tighter ${scanResult === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {scanResult === 'success' ? 'IDENTITY VERIFIED' : 'ACCESS DENIED'}
                 </h2>
-                <p className="text-slate-400 mt-2 text-sm">
+                <p className="text-slate-400 text-sm font-medium leading-relaxed">
                   {scanResult === 'success' 
-                    ? 'Biometric signature matches the database record for Agent E-001.' 
-                    : 'No matching biometric signature found in the global database.'}
+                    ? 'Biometric signature matches the database record for Agent E-001. Clearance granted.' 
+                    : 'No matching biometric signature found in the global database. Security alert triggered.'}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-left">
-                <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-                  <p className="text-[10px] text-slate-500 uppercase">Confidence</p>
-                  <p className="text-sm font-bold text-white">{scanResult === 'success' ? '98.4%' : '12.1%'}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Confidence</p>
+                  <p className={`text-lg font-black ${scanResult === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {scanResult === 'success' ? '98.4%' : '12.1%'}
+                  </p>
                 </div>
-                <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800">
-                  <p className="text-[10px] text-slate-500 uppercase">Latency</p>
-                  <p className="text-sm font-bold text-white">142ms</p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Status</p>
+                  <p className="text-lg font-black text-white">
+                    {scanResult === 'success' ? 'SECURE' : 'THREAT'}
+                  </p>
                 </div>
               </div>
 
               <button 
                 onClick={() => setScanResult(null)}
-                className={`w-full py-4 rounded-2xl font-bold transition active:scale-95 ${
-                  scanResult === 'success' ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-rose-500 text-white hover:bg-rose-400'
+                className={`w-full py-5 rounded-2xl font-black tracking-widest uppercase transition-all duration-300 active:scale-95 shadow-lg ${
+                  scanResult === 'success' 
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-emerald-500/20' 
+                    : 'bg-rose-500 text-white hover:bg-rose-400 shadow-rose-500/20'
                 }`}
               >
-                Dismiss
+                Dismiss Protocol
               </button>
             </div>
           </div>
         )}
 
         {/* Alerts */}
-        <section>
-          <h3 className="text-sm font-semibold text-slate-400 mb-3">Latest Security Alerts</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-              <img src="https://picsum.photos/seed/intruder/200/150?grayscale" alt="Suspicious Intruder" className="w-full h-20 object-cover rounded-lg mb-2 opacity-80" referrerPolicy="no-referrer" />
-              <p className="text-xs font-semibold">Suspicious Intruder</p>
-              <p className="text-[10px] text-slate-500">14 mins ago</p>
-            </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-900 p-3">
-              <img src="https://picsum.photos/seed/hacker/200/150?grayscale" alt="Hacker Warning" className="w-full h-20 object-cover rounded-lg mb-2 opacity-80" referrerPolicy="no-referrer" />
-              <p className="text-xs font-semibold">Hacker Warning</p>
-              <p className="text-[10px] text-slate-500">2 hours ago</p>
-            </div>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Latest Security Alerts</h3>
+            <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded text-[10px] font-bold text-rose-400 animate-pulse">3 ACTIVE</span>
+          </div>
+          
+          <div className="space-y-3">
+            {[
+              { 
+                id: 1, 
+                title: 'Unauthorized Entry Attempt', 
+                time: '2m ago', 
+                level: 'CRITICAL', 
+                location: 'Gate 4B',
+                image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=200&h=200'
+              },
+              { 
+                id: 2, 
+                title: 'Suspicious Package Detected', 
+                time: '15m ago', 
+                level: 'HIGH', 
+                location: 'Terminal 2',
+                image: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&q=80&w=200&h=200'
+              },
+              { 
+                id: 3, 
+                title: 'Facial Recognition Match', 
+                time: '45m ago', 
+                level: 'MEDIUM', 
+                location: 'Main Hall',
+                image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200&h=200'
+              }
+            ].map((alert) => (
+              <div key={alert.id} className="group relative flex items-center gap-4 p-4 rounded-[1.5rem] bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all duration-300">
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
+                  <img src={alert.image} alt="Alert" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" referrerPolicy="no-referrer" />
+                  <div className={`absolute inset-0 opacity-20 ${alert.level === 'CRITICAL' ? 'bg-rose-500' : alert.level === 'HIGH' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${
+                      alert.level === 'CRITICAL' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 
+                      alert.level === 'HIGH' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 
+                      'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                    }`}>
+                      {alert.level}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold">{alert.time}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white truncate group-hover:text-cyan-400 transition-colors">{alert.title}</h4>
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{alert.location}</p>
+                </div>
+
+                <button className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-slate-400 hover:text-white">
+                  <ShieldAlert className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
         </section>
       </main>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 px-6 py-3 flex justify-between items-center">
-        <button className="flex flex-col items-center gap-1 text-cyan-400">
+      <nav className="fixed bottom-0 w-full bg-slate-950/80 backdrop-blur-3xl border-t border-white/5 px-8 py-5 flex justify-between items-center z-50">
+        <button className="flex flex-col items-center gap-1.5 text-white transition-all duration-300 hover:scale-110">
           <Home className="w-6 h-6" />
-          <span className="text-[10px]">Home</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Home</span>
         </button>
         <button 
-          className={`flex flex-col items-center gap-1 ${isScanning ? 'text-cyan-400' : 'text-slate-500'}`}
+          className={`relative flex flex-col items-center gap-1.5 transition-all duration-300 hover:scale-110 ${isScanning ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
           onClick={startScan}
         >
-          <ScanFace className="w-6 h-6" />
-          <span className="text-[10px]">Scan</span>
+          <Fingerprint className="w-6 h-6" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Scan</span>
+          {isScanning && <div className="absolute -bottom-5 w-8 h-1 bg-cyan-500 rounded-full shadow-[0_0_15px_cyan]" />}
         </button>
-        <button className="flex flex-col items-center gap-1 text-slate-500 relative">
-          <Bell className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] flex items-center justify-center font-bold">2</span>
-          <span className="text-[10px]">Alerts</span>
+        <button className="flex flex-col items-center gap-1.5 text-slate-500 relative hover:text-slate-300 transition-all duration-300 hover:scale-110">
+          <div className="relative">
+            <Bell className="w-6 h-6" />
+            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-600 rounded-full text-[8px] flex items-center justify-center font-bold border-2 border-slate-950 shadow-[0_0_10px_rgba(225,29,72,0.4)]">3</span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Alerts</span>
         </button>
-        <button className="flex flex-col items-center gap-1 text-slate-500">
+        <button className="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-all duration-300 hover:scale-110">
           <User className="w-6 h-6" />
-          <span className="text-[10px]">Profile</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Profile</span>
         </button>
       </nav>
     </div>
