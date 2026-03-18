@@ -1,5 +1,5 @@
 {
-  "name": "Face Verification Demo",
-  "description": "A browser-based face enrollment and verification prototype using face-api.js.",
+  "name": "Semlex Security Protocol",
+  "description": "A high-security biometric enrollment and verification system powered by Semlex Security.",
   "requestFramePermissions": ["camera"]
 }

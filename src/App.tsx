@@ -479,7 +479,7 @@ export default function SemlexFaceShowcaseDemo() {
             <div className="inline-flex p-4 rounded-3xl bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.1)]">
               <ShieldCheck className="w-12 h-12 text-cyan-400" />
             </div>
-            <h1 className="text-4xl font-black tracking-tighter text-white uppercase">Security Node Alpha</h1>
+            <h1 className="text-4xl font-black tracking-tighter text-white uppercase">Semlex Security Protocol</h1>
             <p className="text-cyan-500/60 text-xs font-bold uppercase tracking-[0.3em]">Authentication Required</p>
           </div>
 
@@ -551,7 +551,7 @@ export default function SemlexFaceShowcaseDemo() {
             </div>
           </div>
           
-          <p className="text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">Secure Protocol v2.5.0</p>
+          <p className="text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">Semlex Protocol v3.0.0</p>
         </div>
       </div>
     );
@@ -576,7 +576,7 @@ export default function SemlexFaceShowcaseDemo() {
             <ShieldCheck className="w-7 h-7 text-cyan-400" />
           </div>
           <div className="hidden sm:block">
-            <h2 className="text-sm font-black text-white tracking-tighter uppercase">Security Node Alpha</h2>
+            <h2 className="text-sm font-black text-white tracking-tighter uppercase">Semlex Security Protocol</h2>
             <p className="text-[9px] text-cyan-500/60 font-bold tracking-widest uppercase">Operator: {user.email?.split('@')[0]}</p>
           </div>
         </div>
@@ -685,7 +685,7 @@ export default function SemlexFaceShowcaseDemo() {
         {activeTab === 'scan' && (
           <div className="p-5 space-y-6">
             <div className="flex items-center justify-between px-2">
-              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Verification Terminal</h3>
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Semlex Verification Terminal</h3>
               <Pill tone="blue">Ready</Pill>
             </div>
 
