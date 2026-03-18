@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, Component } from 'react';
 import {
   Camera,
   ShieldCheck,
@@ -19,7 +19,138 @@ import {
   Cctv,
   Lock,
   ShieldAlert,
+  Scan,
+  Mail,
+  ArrowRight,
+  LogOut,
 } from 'lucide-react';
+
+// Firebase imports (guarded)
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from 'firebase/firestore';
+
+// Try to load config if it exists
+let firebaseApp: any = null;
+let db: any = null;
+let auth: any = null;
+
+try {
+  // This will fail if the file is missing, which is expected if setup failed
+  const firebaseConfig = require('./firebase-applet-config.json');
+  firebaseApp = initializeApp(firebaseConfig);
+  db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+  auth = getAuth(firebaseApp);
+} catch (e) {
+  console.warn('Firebase configuration not found. Using local state fallback.');
+}
+
+// Error Handling Spec for Firestore Permissions
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth?.currentUser?.uid,
+      email: auth?.currentUser?.email,
+      emailVerified: auth?.currentUser?.emailVerified,
+      isAnonymous: auth?.currentUser?.isAnonymous,
+      tenantId: auth?.currentUser?.tenantId,
+      providerInfo: auth?.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Error Boundary Component
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<any, any> {
+  state: any;
+  props: any;
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let errorMessage = "An unexpected error occurred.";
+      try {
+        const parsed = JSON.parse(this.state.error?.message || "{}");
+        if (parsed.error && parsed.operationType) {
+          errorMessage = `Security Protocol Violation: ${parsed.operationType.toUpperCase()} at ${parsed.path || 'unknown path'} failed. Access Denied.`;
+        }
+      } catch (e) {
+        errorMessage = this.state.error?.message || errorMessage;
+      }
+
+      return (
+        <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 text-center">
+          <div className="max-w-md space-y-6 p-10 rounded-[2.5rem] border border-rose-500/30 bg-rose-950/20 shadow-2xl shadow-rose-500/10">
+            <ShieldAlert className="w-16 h-16 text-rose-500 mx-auto animate-pulse" />
+            <h2 className="text-2xl font-black text-rose-400 uppercase tracking-tighter">System Failure</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">{errorMessage}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-8 py-4 bg-rose-500 hover:bg-rose-400 text-white font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-lg shadow-rose-500/20"
+            >
+              Reboot System
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function Pill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'green' | 'amber' | 'red' | 'blue' | 'teal' }) {
   const toneMap = {
@@ -106,41 +237,131 @@ export default function SemlexFaceShowcaseDemo() {
   const [enrollName, setEnrollName] = useState('');
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [enrollSuccess, setEnrollSuccess] = useState(false);
+  
+  // Auth State
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isScanningEye, setIsScanningEye] = useState(false);
+  const [eyeScanProgress, setEyeScanProgress] = useState(0);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Alerts State
+  const [alerts, setAlerts] = useState<{ id: string; title: string; time: string; level: string; location: string; image: string }[]>([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('biometric_enrollments');
-    if (saved) {
-      try {
-        setEnrollments(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load enrollments', e);
-      }
+    if (auth) {
+      const unsubscribe = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setIsAuthLoading(false);
+      });
+      return unsubscribe;
+    } else {
+      setIsAuthLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('biometric_enrollments', JSON.stringify(enrollments));
+    if (db && user) {
+      const q = query(collection(db, 'enrollments'), orderBy('timestamp', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        setEnrollments(data);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, 'enrollments');
+      });
+      return unsubscribe;
+    } else if (!db) {
+      const saved = localStorage.getItem('biometric_enrollments');
+      if (saved) {
+        try {
+          setEnrollments(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to load enrollments', e);
+        }
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!db) {
+      localStorage.setItem('biometric_enrollments', JSON.stringify(enrollments));
+    }
   }, [enrollments]);
 
   useEffect(() => {
-    if (isScanning) {
+    if (isScanning || isScanningEye || isEnrolling) {
       const interval = setInterval(() => {
-        setScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            completeScan();
-            return 100;
-          }
-          return prev + 2;
-        });
+        if (isScanning) {
+          setScanProgress((prev) => {
+            if (prev >= 100) {
+              clearInterval(interval);
+              completeScan();
+              return 100;
+            }
+            return prev + 2;
+          });
+        } else if (isScanningEye) {
+          setEyeScanProgress((prev) => {
+            if (prev >= 100) {
+              clearInterval(interval);
+              handleAuthSubmit();
+              return 100;
+            }
+            return prev + 4;
+          });
+        } else if (isEnrolling) {
+          setScanProgress((prev) => {
+            if (prev >= 100) {
+              clearInterval(interval);
+              completeEnrollment();
+              return 100;
+            }
+            return prev + 5;
+          });
+        }
       }, 50);
       return () => clearInterval(interval);
     }
-  }, [isScanning]);
+  }, [isScanning, isScanningEye, isEnrolling]);
+
+  const handleAuthSubmit = async () => {
+    setIsScanningEye(false);
+    setEyeScanProgress(0);
+    if (!auth) {
+      // Mock auth for demo if Firebase is not configured
+      if (authEmail.includes('@')) {
+        setUser({ email: authEmail, uid: 'mock-user' } as any);
+      } else {
+        setAuthError('Invalid email address.');
+      }
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, authEmail, authPassword);
+    } catch (e: any) {
+      try {
+        await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      } catch (err: any) {
+        setAuthError(err.message);
+      }
+    }
+  };
+
+  const startEyeScan = () => {
+    if (!authEmail || !authPassword) {
+      setAuthError('Please enter both email and password.');
+      return;
+    }
+    setAuthError(null);
+    setIsScanningEye(true);
+    setEyeScanProgress(0);
+  };
 
   const completeScan = () => {
     setIsScanning(false);
-    // Simulate identification against enrollments
     const matched = enrollments.length > 0 && Math.random() > 0.3;
     if (matched) {
       const randomMatch = enrollments[Math.floor(Math.random() * enrollments.length)];
@@ -153,41 +374,44 @@ export default function SemlexFaceShowcaseDemo() {
     setBusy(false);
   };
 
+  const completeEnrollment = async () => {
+    const canvas = document.createElement('canvas');
+    if (videoRef.current) {
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(videoRef.current, 0, 0);
+      const photo = canvas.toDataURL('image/jpeg');
+      const newEnrollment = {
+        name: enrollName,
+        photo,
+        timestamp: Date.now(),
+        authorUid: user?.uid || 'anonymous',
+      };
+
+      if (db) {
+        try {
+          await addDoc(collection(db, 'enrollments'), newEnrollment);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.CREATE, 'enrollments');
+        }
+      } else {
+        setEnrollments(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), ...newEnrollment }]);
+      }
+
+      setEnrollSuccess(true);
+      setEnrollName('');
+      setIsEnrolling(false);
+      setBusy(false);
+      setScanProgress(0);
+    }
+  };
+
   const startEnrollment = () => {
     if (!enrollName.trim()) return;
     setBusy(true);
     setIsEnrolling(true);
     setScanProgress(0);
-
-    const interval = setInterval(() => {
-      setScanProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          const canvas = document.createElement('canvas');
-          if (videoRef.current) {
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(videoRef.current, 0, 0);
-            const photo = canvas.toDataURL('image/jpeg');
-            const newEnrollment = {
-              id: Math.random().toString(36).substr(2, 9),
-              name: enrollName,
-              photo,
-              timestamp: Date.now(),
-            };
-            setEnrollments(prev => [...prev, newEnrollment]);
-            setEnrollSuccess(true);
-            setEnrollName('');
-            setIsEnrolling(false);
-            setBusy(false);
-            setScanProgress(0);
-          }
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
   };
 
   const startScan = () => {
@@ -239,13 +463,121 @@ export default function SemlexFaceShowcaseDemo() {
     }
   }
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md space-y-12">
+          <div className="text-center space-y-4">
+            <div className="inline-flex p-4 rounded-3xl bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.1)]">
+              <ShieldCheck className="w-12 h-12 text-cyan-400" />
+            </div>
+            <h1 className="text-4xl font-black tracking-tighter text-white uppercase">Security Node Alpha</h1>
+            <p className="text-cyan-500/60 text-xs font-bold uppercase tracking-[0.3em]">Authentication Required</p>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] p-10 space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Operator Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                    <input 
+                      type="email" 
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="operator@security.node"
+                      className="w-full bg-black border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-white placeholder:text-slate-700 focus:border-cyan-500/50 focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">Access Key</label>
+                  <div className="relative">
+                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                    <input 
+                      type="password" 
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-black border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-white placeholder:text-slate-700 focus:border-cyan-500/50 focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {authError && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-500" />
+                  <p className="text-xs font-bold text-rose-400">{authError}</p>
+                </div>
+              )}
+
+              <div className="relative">
+                {isScanningEye ? (
+                  <div className="space-y-6">
+                    <div className="relative aspect-square w-48 mx-auto rounded-full border-2 border-cyan-500/30 overflow-hidden bg-black flex items-center justify-center">
+                      <div className="absolute inset-0 bg-cyan-500/5 animate-pulse" />
+                      <Eye className="w-24 h-24 text-cyan-400/40" />
+                      <div className="absolute inset-0 border-t-2 border-cyan-400 shadow-[0_0_20px_cyan] animate-scan" />
+                      <div className="absolute bottom-4 left-0 w-full text-center">
+                        <span className="text-[10px] font-black text-cyan-400 tracking-widest uppercase">Scanning Retina...</span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 shadow-[0_0_10px_cyan] transition-all duration-300" style={{ width: `${eyeScanProgress}%` }} />
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={startEyeScan}
+                    className="w-full group relative flex items-center justify-center gap-3 py-5 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-[0_0_30px_rgba(6,182,212,0.3)]"
+                  >
+                    <span>Initialize Eye Scan</span>
+                    <Eye className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-center text-slate-600 text-[10px] font-bold uppercase tracking-[0.4em]">Secure Protocol v2.5.0</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
-      {/* Header */}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30">
+        {/* Firebase Status Banner */}
+        {!db && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2 flex items-center justify-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+              Firebase Provisioning Incomplete - Using Local Storage Fallback
+            </span>
+          </div>
+        )}
+        {/* Header */}
       <header className="px-6 py-5 flex items-center justify-between border-b border-white/5 bg-slate-900/20 backdrop-blur-xl sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
             <ShieldCheck className="w-7 h-7 text-cyan-400" />
+          </div>
+          <div className="hidden sm:block">
+            <h2 className="text-sm font-black text-white tracking-tighter uppercase">Security Node Alpha</h2>
+            <p className="text-[9px] text-cyan-500/60 font-bold tracking-widest uppercase">Operator: {user.email?.split('@')[0]}</p>
           </div>
         </div>
         
@@ -257,9 +589,17 @@ export default function SemlexFaceShowcaseDemo() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => auth ? signOut(auth) : setUser(null)}
+            className="p-2 rounded-xl bg-slate-800/40 border border-white/5 text-slate-400 hover:text-rose-400 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
           <div className="relative p-2 rounded-xl bg-slate-800/40 border border-white/5">
             <Bell className="w-6 h-6 text-slate-300" />
-            <span className="absolute top-1 right-1 w-4 h-4 bg-rose-600 rounded-full text-[9px] flex items-center justify-center font-bold border-2 border-slate-900">2</span>
+            {alerts.length > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-rose-600 rounded-full text-[9px] flex items-center justify-center font-bold border-2 border-slate-900">{alerts.length}</span>
+            )}
           </div>
         </div>
       </header>
@@ -268,43 +608,37 @@ export default function SemlexFaceShowcaseDemo() {
       <main className="flex-grow overflow-y-auto pb-28">
         {activeTab === 'home' && (
           <div className="p-5 space-y-6">
-            {/* Hero / Immigration Portal */}
-            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 aspect-[4/3] group shadow-2xl shadow-cyan-900/20">
-              <img 
-                src="https://ais-dev-ejzbcgt7ruetckswv642si-56203130379.asia-east1.run.app/api/attachments/89d5cb25-1e75-490d-963a-baec89117a56/attachment.png" 
-                alt="Immigration Hall" 
-                className="w-full h-full object-cover brightness-75 transition-transform duration-1000 group-hover:scale-110" 
-                referrerPolicy="no-referrer" 
-              />
+            {/* Hero / Camera Capture Area */}
+            <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 aspect-[4/3] group shadow-2xl shadow-cyan-900/20 bg-black">
+              {cameraReady ? (
+                <video ref={videoRef} playsInline muted autoPlay className="w-full h-full object-cover brightness-75" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-slate-900/40">
+                  <div className="p-6 rounded-full bg-cyan-500/10 border border-cyan-500/20 animate-pulse">
+                    <Camera className="w-12 h-12 text-cyan-500/40" />
+                  </div>
+                  <button 
+                    onClick={startCamera}
+                    className="px-6 py-2 bg-cyan-500/20 border border-cyan-500/40 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest hover:bg-cyan-500/30 transition-all"
+                  >
+                    Initialize Optics
+                  </button>
+                </div>
+              )}
               
               {/* Scanning Line Animation */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
                 <div className="w-full h-[1px] bg-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.6)] absolute top-0 animate-scan" />
               </div>
 
-              {/* Biometric Frame Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="relative w-48 h-56">
-                  {/* Corner Brackets */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg" />
-                  
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <ScanFace className="w-12 h-12 text-white/20 animate-pulse" />
-                  </div>
-                </div>
-              </div>
-
               {/* HUD Elements */}
               <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10">
-                <span className="text-[11px] font-bold text-white tracking-widest uppercase">IMMIGRATION</span>
+                <span className="text-[11px] font-bold text-white tracking-widest uppercase">LIVE_FEED</span>
               </div>
 
               <div className="absolute bottom-4 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">REC</span>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">ACTIVE</span>
               </div>
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
@@ -519,36 +853,21 @@ export default function SemlexFaceShowcaseDemo() {
           <div className="p-5 space-y-6">
             <div className="flex items-center justify-between px-2">
               <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Security Alerts</h3>
-              <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded text-[10px] font-bold text-rose-400 animate-pulse">3 ACTIVE</span>
+              {alerts.length > 0 ? (
+                <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded text-[10px] font-bold text-rose-400 animate-pulse">{alerts.length} ACTIVE</span>
+              ) : (
+                <Pill tone="green">System Secure</Pill>
+              )}
             </div>
             
             <div className="space-y-3">
-              {[
-                { 
-                  id: 1, 
-                  title: 'Unauthorized Entry Attempt', 
-                  time: '2m ago', 
-                  level: 'CRITICAL', 
-                  location: 'Gate 4B',
-                  image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=200&h=200'
-                },
-                { 
-                  id: 2, 
-                  title: 'Suspicious Package Detected', 
-                  time: '15m ago', 
-                  level: 'HIGH', 
-                  location: 'Terminal 2',
-                  image: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&q=80&w=200&h=200'
-                },
-                { 
-                  id: 3, 
-                  title: 'Facial Recognition Match', 
-                  time: '45m ago', 
-                  level: 'MEDIUM', 
-                  location: 'Main Hall',
-                  image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200&h=200'
-                }
-              ].map((alert) => (
+              {alerts.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-600 space-y-4">
+                  <ShieldCheck className="w-16 h-16 opacity-20" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em]">No active threats detected</p>
+                </div>
+              )}
+              {alerts.map((alert) => (
                 <div key={alert.id} className="group relative flex items-center gap-4 p-4 rounded-[1.5rem] bg-slate-900/40 border border-white/5 hover:border-white/10 transition-all duration-300">
                   <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex-shrink-0">
                     <img src={alert.image} alt="Alert" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" referrerPolicy="no-referrer" />
@@ -656,5 +975,6 @@ export default function SemlexFaceShowcaseDemo() {
         <NavButton active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} icon={<Bell className="w-6 h-6" />} label="Alerts" />
       </nav>
     </div>
+    </ErrorBoundary>
   );
 }
